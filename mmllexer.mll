@@ -11,6 +11,12 @@
       [ ("true", TRUE);
         ("false", FALSE);
         ("mod", MOD);
+        ("if", IF);
+        ("then", THEN);
+        ("else", ELSE);
+        ("let", LET);
+        ("rec", REC);
+        ("in", IN);
       ] ;
     fun s ->
       try  Hashtbl.find h s

@@ -2,6 +2,9 @@
 
   open Lexing
   open Mml
+  open List
+  (*let get_tuple_type =  List.fold_left (TFun (List.tl (List.split) ))  
+  let get_tuple_var =  List.fold_left TFun *)
 
 %}
 
@@ -25,17 +28,31 @@
 %token LPAR RPAR LBRA RBRA LARR RARR
 (* ; : . *)
 %token SEMI DCOMMA COMMA
+(* Condition *)
+%token IF THEN ELSE
+(* fonction *)
+%token FUN 
+%token LET REC IN
+(* End of line *)
 %token EOF
 
+(* priorite constante *)
+%nonassoc CST IDENT TRUE FALSE
+(* priorite condit *)
+%nonassoc THEN
+%nonassoc ELSE
+(* priorite fonction bool *)
 %nonassoc AND OR
-%nonassoc EQ NEQ LT LE   
+%right EQ NEQ LT LE  
+(* priorite des operateur *) 
 %left PLUS MOINS
 %left STAR DIV MOD
-%nonassoc NEG NOT
-%nonassoc RARR LARR 
+%right NEG NOT
+(* priorite des *)
+%right RARR LARR 
 %right SEMI
 %nonassoc LPAR LBRA 
-%nonassoc TRUE FALSE CST IDENT
+
 %start program
 %type <Mml.prog> program
 
@@ -72,7 +89,6 @@ simple_expression:
 | s=simple_expression COMMA id=IDENT { GetF(s, id) }
 | LBRA stsimpexp=struct_simple_exp+ RBRA { Strct( stsimpexp ) } 
 | LPAR e=expression RPAR { e }
-
 ;
 
 struct_simple_exp:
@@ -83,12 +99,22 @@ expression:
 | e1=expression op=binop e2=expression { Bop(op, e1, e2) }
 | op=unop e=expression {Uop(op,e)}
 | e=expression s=simple_expression { App(e, s) }
-
-
-
+| IF e1=expression THEN e2=expression { If(e1,e2, Unit)  }
+| IF e1=expression THEN e2=expression ELSE e3=expression { If(e1,e2,e3) }
+| FUN LPAR id=IDENT DCOMMA t=type_ RPAR RARR e=expression { Fun(id, t, e) }
+| LET id=IDENT variable* EQ e1=expression IN e2=expression { Let(id, e1, e2) }
+(* | LET REC id=IDENT v=variable* DCOMMA t=type_ EQ e1=expression IN e2=expression {
+  Let(id, Fix(id,get_tuple v, t ), )
+} *)
 | s=simple_expression COMMA id=IDENT LARR e=expression { SetF(s, id, e) }
-| e1=expression SEMI e2=expression { Seq(e1, e2) }
+| seq_=sequence {seq_}
 ;
+
+variable:
+| LPAR id=IDENT DCOMMA t=type_ RPAR { (id, t) } 
+
+sequence:
+| e1=expression SEMI e2=expression { Seq(e1, e2) }
 
 %inline unop:
 | NEG { Neg }
