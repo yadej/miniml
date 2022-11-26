@@ -8,7 +8,9 @@
   let keyword_or_ident =
     let h = Hashtbl.create 17 in
     List.iter (fun (s, k) -> Hashtbl.add h s k)
-      [ (* À compléter *)
+      [ ("true", TRUE);
+        ("false", FALSE);
+        ("mod", MOD);
       ] ;
     fun s ->
       try  Hashtbl.find h s
@@ -30,6 +32,8 @@ rule token = parse
       { comment lexbuf; token lexbuf }
   | number as n
       { CST(int_of_string n) }
+  | ident as id
+     { keyword_or_ident id }
   | "+"
       { PLUS }
   | "*"
@@ -38,9 +42,7 @@ rule token = parse
       { MOINS }
   | "/"
       { DIV }
-  | "mod"
-      { MOD }
-  | "=="
+  | ['=']+
       { EQ }
   | "!="
       { NEQ }
@@ -52,6 +54,24 @@ rule token = parse
       { AND }
   | "||"
       { OR }
+  | "("
+     { LPAR }
+  | ")"
+     { RPAR } 
+  | "{"
+     { LBRA }
+  | "}"
+     { RBRA }
+  | "<-"
+     { LARR }
+  | "->" 
+     { RARR }
+  | ";"
+     { SEMI }
+  | ":"
+     { DCOMMA }
+  | "."
+     { COMMA }
   | _
       { raise (Lexing_error ("unknown character : " ^ (lexeme lexbuf))) }
   | eof
