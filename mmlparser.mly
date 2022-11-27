@@ -3,22 +3,27 @@
   open Lexing
   open Mml
   open List
-  (*let get_tuple_type =  List.fold_left (TFun (List.tl (List.split) ))  
-  let get_tuple_var =  List.fold_left TFun *)
+  
+  let rec get_tuple_fun = function
+  | (a ,b)::s, e -> Fun(a, b, get_tuple_fun (s,e ) )
+  | _, e -> e
 
+  let rec get_tuple_type = function
+  | (_, b)::s, t -> TFun(b, get_tuple_type(s, t))
+  | _, t -> t 
 %}
 
 (* les exp bool*)
-%token EQ NEQ LT LE AND OR
+%token EQ DEQ NEQ LT LE AND OR
 (* operateur *)
 %token PLUS STAR DIV MOD
 %token MOINS NOT NEG
 (* des variables *)
 %token <int> CST
-%token <int> INT
-%token <bool> BOOLEAN
+%token INT
+%token BOOLEAN
 %token <string> IDENT
-%token <bool> MUTABLE
+%token MUTABLE
 %token TYPE
 %token TRUE FALSE
 (* () *)
@@ -37,21 +42,26 @@
 %token EOF
 
 (* priorite constante *)
-%nonassoc CST IDENT TRUE FALSE
+%nonassoc CST
+%nonassoc IDENT
+%nonassoc TRUE FALSE
+(*%nonassoc CST IDENT TRUE FALSE*)
 (* priorite condit *)
 %nonassoc THEN
 %nonassoc ELSE
 (* priorite fonction bool *)
 %nonassoc AND OR
-%right EQ NEQ LT LE  
+%right DEQ NEQ LT LE  
 (* priorite des operateur *) 
 %left PLUS MOINS
 %left STAR DIV MOD
-%right NEG NOT
-(* priorite des *)
+%nonassoc NEG NOT
+(* priorite des fleche parenthese et point virgule *)
 %right RARR LARR 
 %right SEMI
 %nonassoc LPAR LBRA 
+(* priorite des let *)
+%nonassoc IN
 
 %start program
 %type <Mml.prog> program
@@ -97,15 +107,15 @@ struct_simple_exp:
 expression:
 | e=simple_expression { e }
 | e1=expression op=binop e2=expression { Bop(op, e1, e2) }
-| op=unop e=expression {Uop(op,e)}
+| uop=unop { uop }
 | e=expression s=simple_expression { App(e, s) }
 | IF e1=expression THEN e2=expression { If(e1,e2, Unit)  }
 | IF e1=expression THEN e2=expression ELSE e3=expression { If(e1,e2,e3) }
 | FUN LPAR id=IDENT DCOMMA t=type_ RPAR RARR e=expression { Fun(id, t, e) }
-| LET id=IDENT variable* EQ e1=expression IN e2=expression { Let(id, e1, e2) }
-(* | LET REC id=IDENT v=variable* DCOMMA t=type_ EQ e1=expression IN e2=expression {
-  Let(id, Fix(id,get_tuple v, t ), )
-} *)
+| LET id=IDENT v=variable* EQ e1=expression IN e2=expression { Let(id, get_tuple_fun(v ,e1), e2) } 
+| LET REC id=IDENT v=variable* DCOMMA t=type_ EQ e1=expression IN e2=expression {
+  Let(id, Fix(id,get_tuple_type (v, t), get_tuple_fun(v, e1) ),e2 )
+} 
 | s=simple_expression COMMA id=IDENT LARR e=expression { SetF(s, id, e) }
 | seq_=sequence {seq_}
 ;
@@ -116,9 +126,9 @@ variable:
 sequence:
 | e1=expression SEMI e2=expression { Seq(e1, e2) }
 
-%inline unop:
-| NEG { Neg }
-| NOT { Not }
+unop:
+| MOINS e=expression %prec NEG { Uop(Neg, e) }
+| NOT e=expression { Uop(Not, e) }
 ;
 %inline binop:
 | PLUS { Add }
@@ -126,7 +136,7 @@ sequence:
 | MOINS { Sub }
 | DIV { Div }
 | MOD { Mod }
-| EQ { Eq }
+| DEQ { Eq }
 | NEQ { Neq }
 | LT { Lt }
 | LE { Le }
