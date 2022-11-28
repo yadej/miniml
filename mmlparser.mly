@@ -46,6 +46,8 @@
 %nonassoc IDENT
 %nonassoc TRUE FALSE
 (*%nonassoc CST IDENT TRUE FALSE*)
+(* priorite des point virgule*)
+%right SEMI
 (* priorite condit *)
 %nonassoc THEN
 %nonassoc ELSE
@@ -58,7 +60,6 @@
 %nonassoc NEG NOT
 (* priorite des fleche parenthese et point virgule *)
 %right RARR LARR 
-%right SEMI
 %nonassoc LPAR LBRA 
 (* priorite des let *)
 %nonassoc IN
@@ -79,7 +80,8 @@ type_def:
 ;
 
 struct_type_def:
-| m=MUTABLE? id=IDENT DCOMMA t=type_ SEMI  { (id, t, m) }
+| MUTABLE id=IDENT DCOMMA t=type_ SEMI  { (id, t, true) }
+| id=IDENT DCOMMA t=type_ SEMI  { (id, t, false) }
 
 type_:
 | INT { TInt }

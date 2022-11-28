@@ -23,9 +23,28 @@ let type_prog prog =
   (* Calcule le type de l'expression [e] *)
   and type_expr e tenv = match e with
     | Int _  -> TInt
-    | Bop((Add | Mul), e1, e2) -> 
+    | Bool _ -> TBool
+    | Var x ->  TStrct(x)
+    | Unit -> TUnit
+    | Uop(Neg, e) ->
+      check e TInt tenv; TInt
+    | Uop(Not, e) ->
+      check e TBool tenv; TBool
+    | Bop((Add | Mul | Sub | Div | Mod), e1, e2) -> 
        check e1 TInt tenv; check e2 TInt tenv; TInt
-
+    | Bop(( Lt | Le ), e1, e2) ->
+      check e1 TInt tenv; check e2 TInt tenv; TBool
+    | Bop(( And | Or), e1, e2) ->
+      check e1 TBool tenv; check e2 TBool tenv; TBool
+    | Bop(( Eq | Neq ), e1, e2) ->
+        let typ_e1 = type_expr e1 tenv in
+        let typ_e2 = type_expr e2 tenv in
+        check e1 typ_e2 tenv;check e2 typ_e1 tenv;TBool
+    | Let(x, e1, e2) ->
+      let typ_e1 = type_expr e1 tenv in
+      let typ_e2 = type_expr e2 tenv in
+      typ_e2
+    
   in
 
   type_expr prog.code SymTbl.empty
