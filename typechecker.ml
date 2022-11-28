@@ -38,13 +38,57 @@ let type_prog prog =
       check e1 TBool tenv; check e2 TBool tenv; TBool
     | Bop(( Eq | Neq ), e1, e2) ->
         let typ_e1 = type_expr e1 tenv in
+        (*le deuxieme check ne sert pas a grand chose mais pour etre sur*)
         let typ_e2 = type_expr e2 tenv in
         check e1 typ_e2 tenv;check e2 typ_e1 tenv;TBool
     | Let(x, e1, e2) ->
       let typ_e1 = type_expr e1 tenv in
       let typ_e2 = type_expr e2 tenv in
       typ_e2
-    
+    | If(e1, e2, e3) ->   
+      let typ_e2 = type_expr e2 tenv in
+      check e1 TBool;check e3 typ_e2 tenv;typ_e2
+    | Fun(x, t, e) ->
+      let typ_e = type_expr e tenv in
+      TFun(t, typ_e)
+    | App(e1, e2) ->
+      let typ_e1 = type_expr e1 tenv in
+      let typ_e2 = type_expr e2 tenv in
+      let know_t1 =
+        if typ_e1 = typ_e2 then TUnit
+        else
+        let rec aux = function
+        | TFun(a, b), c when a != c ->
+           TFun(b , aux(a, c))
+        |_ -> assert false
+        in
+        let rev = aux(typ_e1, typ_e2) in
+        let rec revTapp = function
+        | TFun(a, b) -> TFun(b, revTapp(a))
+        | t -> t
+        in
+        revTapp(rev)
+      in
+      know_t1
+    | Fix(x, t, e) ->
+      let typ_e = type_expr e tenv in
+      typ_e
+    | Seq(e1, e2) ->
+      let typ_e1 = type_expr e tenv in
+      let typ_e2 = type_expr e tenv in
+      typ_e2
+    | GetF(e, s) ->
+      let rec typ_f = function
+      | Strct((k, b)::r) -> if s == k then b 
+      else typ_f(Strct(r))
+      | _ -> assert false
+      in
+      let typ_s = type_expr (typ_f (e)) tenv in
+      typ_s
+    | SetF(e1, s, e2) -> TUnit
+    | Strct( l ) -> TStrct("a")
+
+
   in
 
   type_expr prog.code SymTbl.empty

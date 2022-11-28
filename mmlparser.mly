@@ -3,14 +3,7 @@
   open Lexing
   open Mml
   open List
-  
-  let rec get_tuple_fun = function
-  | (a ,b)::s, e -> Fun(a, b, get_tuple_fun (s,e ) )
-  | _, e -> e
 
-  let rec get_tuple_type = function
-  | (_, b)::s, t -> TFun(b, get_tuple_type(s, t))
-  | _, t -> t 
 %}
 
 (* les exp bool*)
@@ -41,11 +34,9 @@
 (* End of line *)
 %token EOF
 
-(* priorite constante *)
-%nonassoc CST
-%nonassoc IDENT
-%nonassoc TRUE FALSE
+%right IDENT
 (*%nonassoc CST IDENT TRUE FALSE*)
+
 (* priorite des point virgule*)
 %right SEMI
 (* priorite condit *)
@@ -54,6 +45,10 @@
 (* priorite fonction bool *)
 %nonassoc AND OR
 %right DEQ NEQ LT LE  
+
+(* priorite des let *)
+%nonassoc IN
+
 (* priorite des operateur *) 
 %left PLUS MOINS
 %left STAR DIV MOD
@@ -61,8 +56,8 @@
 (* priorite des fleche parenthese et point virgule *)
 %right RARR LARR 
 %nonassoc LPAR LBRA 
-(* priorite des let *)
-%nonassoc IN
+(* priorite constante *)
+%nonassoc CST TRUE FALSE
 
 %start program
 %type <Mml.prog> program
@@ -114,9 +109,9 @@ expression:
 | IF e1=expression THEN e2=expression { If(e1,e2, Unit)  }
 | IF e1=expression THEN e2=expression ELSE e3=expression { If(e1,e2,e3) }
 | FUN LPAR id=IDENT DCOMMA t=type_ RPAR RARR e=expression { Fun(id, t, e) }
-| LET id=IDENT v=variable* EQ e1=expression IN e2=expression { Let(id, get_tuple_fun(v ,e1), e2) } 
+| LET id=IDENT v=variable* EQ e1=expression IN e2=expression { Let(id, mk_fun v e1, e2) } 
 | LET REC id=IDENT v=variable* DCOMMA t=type_ EQ e1=expression IN e2=expression {
-  Let(id, Fix(id,get_tuple_type (v, t), get_tuple_fun(v, e1) ),e2 )
+  Let(id, Fix(id,mk_fun_type v t, mk_fun v e1 ),e2 )
 } 
 | s=simple_expression COMMA id=IDENT LARR e=expression { SetF(s, id, e) }
 | seq_=sequence {seq_}
