@@ -47,7 +47,7 @@ let type_prog prog =
       typ_e2
     | If(e1, e2, e3) ->   
       let typ_e2 = type_expr e2 tenv in
-      check e1 TBool;check e3 typ_e2 tenv;typ_e2
+      check e1 TBool tenv;check e3 typ_e2 tenv;typ_e2
     | Fun(x, t, e) ->
       let typ_e = type_expr e tenv in
       TFun(t, typ_e)

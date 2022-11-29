@@ -39,13 +39,26 @@ let eval_prog (p: prog): value =
   let rec eval (e: expr) (env: value Env.t): value = 
     match e with
     | Int n  -> VInt n
+    | Bool b -> VBool b
     | Bop(Add, e1, e2) -> VInt (evali e1 env + evali e2 env)
     | Bop(Mul, e1, e2) -> VInt (evali e1 env * evali e2 env)
+    | Bop(Sub, e1, e2) -> VInt (evali e1 env - evali e2 env)
+    | Bop(Div, e1, e2) -> VInt (evali e1 env / evali e2 env)
+    | Bop(Mod, e1, e2) -> VInt (evali e1 env mod evali e2 env)
+    | Uop(Neg, e) -> VInt(- evali e env)
+    | Bop(Lt, e1, e2) -> VBool (evali e1 env < evali e2 env)
+    | Bop(Le, e1, e2) -> VBool (evali e1 env <= evali e2 env)
+    | Bop(And, e1, e2) -> VBool (evalb e1 env && evalb e2 env)
+    | Bop(Or, e1, e2) -> VBool (evalb e1 env || evalb e2 env)
 
   (* Évaluation d'une expression dont la valeur est supposée entière *)
   and evali (e: expr) (env: value Env.t): int = 
     match eval e env with
     | VInt n -> n
+    | _ -> assert false
+  and evalb (e: expr) (env: value Env.t): bool =
+    match eval e env with
+    | VBool b -> b
     | _ -> assert false
   in
 
