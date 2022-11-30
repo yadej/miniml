@@ -34,30 +34,36 @@
 (* End of line *)
 %token EOF
 
-%right IDENT
+(* priorite des let *)
+%nonassoc IN
 (*%nonassoc CST IDENT TRUE FALSE*)
+%right IDENT
 
 (* priorite des point virgule*)
-%right SEMI
+%nonassoc SEMI
 (* priorite condit *)
 %nonassoc THEN
 %nonassoc ELSE
-(* priorite fonction bool *)
-%nonassoc AND OR
-%right DEQ NEQ LT LE  
 
-(* priorite des let *)
-%nonassoc IN
+(* priorite fonction bool *)
+%right OR
+%right AND
+
+(* priorite op bool*)
+%nonassoc DEQ NEQ LT LE  
 
 (* priorite des operateur *) 
 %left PLUS MOINS
-%left STAR DIV MOD
-%nonassoc NEG NOT
+%left STAR DIV MOD 
+%nonassoc NEG
+%left NOT
+
+(* priorite constante *)
+%nonassoc TRUE FALSE CST
+
 (* priorite des fleche parenthese et point virgule *)
 %right RARR LARR 
 %nonassoc LPAR LBRA 
-(* priorite constante *)
-%nonassoc CST TRUE FALSE
 
 %start program
 %type <Mml.prog> program

@@ -6,7 +6,7 @@
   exception Lexing_error of string
 
   let keyword_or_ident =
-    let h = Hashtbl.create 17 in
+    let h = Hashtbl.create 19 in
     List.iter (fun (s, k) -> Hashtbl.add h s k)
       [ ("true", TRUE);
         ("false", FALSE);
@@ -24,6 +24,8 @@
         ("int", INT);
         ("bool", BOOLEAN);
         ("unit", UNIT);
+        ("and", AND);
+        ("or", OR);
       ] ;
     fun s ->
       try  Hashtbl.find h s

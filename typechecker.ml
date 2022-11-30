@@ -1,5 +1,4 @@
 open Mml
-
 (* Environnement de typage : associe des types aux noms de variables *)
 module SymTbl = Map.Make(String)
 type tenv = typ SymTbl.t
@@ -78,17 +77,44 @@ let type_prog prog =
       let typ_e2 = type_expr e tenv in
       typ_e2
     | GetF(e, s) ->
-      let rec typ_f = function
-      | Strct((k, b)::r) -> if s == k then b 
-      else typ_f(Strct(r))
+      let typ_s = type_expr (typ_f(e, s)) tenv in
+      typ_s
+    | SetF(e1, s, e2) -> 
+      (* On cherche les struct dans les types pour savoir si c'est mutable*)
+      let program_type = prog.types in
+      let t = snd (find_struct(e1, program_type , tenv)) in
+      let rec find_t_mutable = function
+      | s1 , (s2, t, b)::r -> if String.compare s1 s2 == 0 then
+        (t, b) else find_t_mutable(s1, r)
       | _ -> assert false
       in
-      let typ_s = type_expr (typ_f (e)) tenv in
-      typ_s
-    | SetF(e1, s, e2) -> TUnit
-    | Strct( l ) -> TStrct("a")
-
-
+      let (t , b) = find_t_mutable(s, t) in
+      if not b then assert false;check e2 t tenv;
+      
+      TUnit
+    | Strct( l ) as st ->
+       let program_type = prog.types in
+       let (nom, t) = find_struct(st, program_type, tenv) in
+       TStrct(nom)
+    and typ_f = function
+      (* Regarde dans la structure si le nom correspond 
+         a un nom de type dans la structure 
+         puis on donne son type *)
+    | Strct((k, b)::r), s -> if s == k then b  
+    else typ_f(Strct(r), s)
+    | _ -> assert false
+    and eq_struct = function
+      (* Regarde pour chaque nom et type que c est les meme que dans la structure*)
+    | Strct((k, b)::r1), ( a, (s, t, boolean)::r2) , tenv
+    when  String.compare k s == 0 && (type_expr b tenv) == t  ->
+      eq_struct( Strct(r1),(a,(r2)) , tenv)
+    | Strct([]), (_, []) , tenv-> true
+    | _ -> false
+    and find_struct = function
+      (* Regarde pour chaque structure si il correspond a st*)
+    | st, t1::t2 , tenv-> if eq_struct(st, t1, tenv) then t1 
+    else find_struct(st, t2, tenv)
+    | _ -> assert false
   in
 
   type_expr prog.code SymTbl.empty
