@@ -1,2 +1,0 @@
-mmlparser.ml: Lexing List Mml
-mmlparser.mli: Lexing Mml
