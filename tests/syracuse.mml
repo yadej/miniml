@@ -1,6 +1,7 @@
 type intref = { mutable value: int; }
 type sequence = { start: int; next: int -> int; stop: int -> bool; }
 
+
 let max_value (s:sequence) =
   let max = { value = s.start; } in
   let rec iter (n:int): unit =

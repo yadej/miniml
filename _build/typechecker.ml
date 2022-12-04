@@ -56,6 +56,7 @@ let type_prog prog =
       TFun(t, typ_e)
     | App(e1, e2) ->
       let t2 = type_expr e2 tenv in
+      Printf.printf "%s" (typ_to_string t2);
       (match type_expr e1 tenv with
       | TFun(t, t1) when t = t2 -> t1
       | _ -> raise (Type_error "application de e1 a e2 mais e1 n ai pas une app " ))
