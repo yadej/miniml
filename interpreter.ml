@@ -56,13 +56,8 @@ let eval_prog (p: prog): value =
     | Bop(Eq, e1, e2) -> VBool (evalequal e1 e2 env)
     | Bop(Neq, e1, e2) -> VBool (not (evalequal e1 e2 env))
     | Uop(Not, e) -> VBool( not (evalb e env))
-    | Let(x, e1, e2) -> ( match e1 with 
-      | Fun(_,_,_)| Fix(_,_,_) ->
-        let n = new_ptr() in
-        Hashtbl.add mem n (VClos(x, e1, env)); 
-        let env' = Env.add x (VPtr(n)) env in eval e2 env'
-      | _ -> let env' = Env.add x (eval e1 env) env in eval e2 env'
-    )
+    | Let(x, e1, e2)  -> 
+      let env' = Env.add x (eval e1 env) env in eval e2 env'
     | Fix(s, t, e) -> (match e with
       | Fun(_,_,_) | Strct(_)  ->
         eval e env
@@ -74,28 +69,17 @@ let eval_prog (p: prog): value =
       let var = eval e2 env in 
       begin match Hashtbl.find mem (evalptr e1 env) with
       | VClos(x, e, env') -> 
-        begin match e with
-        | Let(x2, p1, p2) -> begin match p1 with 
-            | Fun(x3, _, p) -> 
-              let new_env = Env.add  x3 var env' in
-              eval p new_env
-            | _ -> assert false
-          end 
-        | Fun(x3, t, p) -> 
-          let new_env = Env.add x3 var env' in
-          let p_res = eval p new_env in p_res
-        | _ -> assert false
-        end
+          let new_env = Env.add x var env' in
+          eval e new_env
       | _ -> assert false
         end
     | If(e1, e2, e3) -> if (evalb e1 env) then eval e2 env 
       else eval e3 env
     | GetF(e, x) -> 
-        let rec search_e = function
-        | Strct((id, e')::r) -> if x = id then eval e' env
-          else search_e (Strct(r))
+        begin match Hashtbl.find mem (evalptr e env) with
+        | VStrct(mem2)  ->Hashtbl.find mem2 x
         | _ -> assert false
-        in search_e e
+      end
     | SetF(e1, x, e2) ->  eval e1 env
     | Strct( l ) -> let n = new_ptr () in
       let (mem_struct:(string, value) Hashtbl.t) = Hashtbl.create (List.length l  + 1) in 
@@ -121,15 +105,9 @@ let eval_prog (p: prog): value =
     |VPtr a, VPtr b -> a = b
     |_, _ -> false
   and evalptr (e: expr) (env: value Env.t): int =
-    match e with
-    | Let(x, e1, e2) -> let ptr =  Env.find x env in 
-      begin match ptr with
-      |VPtr n -> n
-      |_ -> assert false
-      end
-    | _ -> begin match eval e env with 
-            | VPtr(n) -> n
-            | _ -> assert false
+    begin match eval e env with
+        | VPtr(n) -> n
+        | _ -> assert false
     end
   in
 

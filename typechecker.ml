@@ -24,7 +24,7 @@ let type_prog prog =
     | Int _  -> TInt
     | Bool _ -> TBool
     | Var x ->( try  SymTbl.find x tenv 
-            with Not_found -> TStrct(x))
+            with Not_found -> raise (Type_error "x n'est pas dans la map"))
     | Unit -> TUnit
     | Uop(Neg, e') ->
       check e' TInt tenv; TInt
@@ -52,7 +52,7 @@ let type_prog prog =
     | Fun(x, t, e') ->
       let tenv' = SymTbl.add x t tenv in
       check (Var(x)) t tenv';
-      let typ_e = type_expr e' tenv in
+      let typ_e = type_expr e' tenv' in
       TFun(t, typ_e)
     | App(e1, e2) ->
       let t2 = type_expr e2 tenv in
@@ -68,11 +68,20 @@ let type_prog prog =
       let typ_e2 = type_expr e2 tenv in
       typ_e2
     | GetF(e', s) ->
-      let typ_s = type_expr (typ_f(e', s)) tenv in
+      let program_type = prog.types in
+      let nom = type_expr e' tenv in
+      let rec f_str = function
+      | TStrct(l), ((s', a)::r) -> if s' = l then a else
+        (f_str ((TStrct(l)), r))
+      | _ -> assert false
+      in
+      let typ_s = (typ_f((f_str (nom,program_type) ), s))  in
       typ_s
     | SetF(e1, s, e2) -> 
+      Printf.printf "je suis passe par SetF";
       (* On cherche les struct dans les types pour savoir si c'est mutable*)
       let program_type = prog.types in
+      
       let t = snd (find_struct(e1, program_type , tenv)) in
       let rec find_t_mutable = function
       | s1 , (s2, t, b)::r -> if String.compare s1 s2 == 0 then
@@ -91,8 +100,9 @@ let type_prog prog =
       (* Regarde dans la structure si le nom correspond 
          a un nom de type dans la structure 
          puis on donne son type *)
-    | Strct((k, b)::r), s -> if String.compare s k == 0  then b  
-    else typ_f(Strct(r), s)
+    | (k, b, _)::r , s -> Printf.printf "k: %s == s: %s"k s;
+       if s == k  then b  
+    else typ_f(r, s)
     | _ -> assert false
     and eq_struct = function
       (* Regarde pour chaque nom et type que c est les meme que dans la structure*)
@@ -105,7 +115,7 @@ let type_prog prog =
       (* Regarde pour chaque structure si il correspond a st*)
     | st, t1::t2 , tenv-> if eq_struct(st, t1, tenv) then t1 
     else find_struct(st, t2, tenv)
-    | _ -> assert false
+    | _ -> Printf.printf "je fail find_struct";assert false
   in
 
   type_expr prog.code SymTbl.empty
