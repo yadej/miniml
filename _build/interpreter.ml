@@ -80,10 +80,7 @@ let eval_prog (p: prog): value =
         | VStrct(mem2)  -> Hashtbl.find mem2 x
         | _ -> assert false
       end
-    | SetF(e1, x, e2) -> begin match Hashtbl.find mem (evalptr e1 env) with
-        | VStrct(mem2) -> Hashtbl.replace mem2 x (eval e2 env); VUnit
-        | _ -> assert false
-    end
+    | SetF(e1, x, e2) ->  eval e1 env
     | Strct( l ) -> let n = new_ptr () in
       let (mem_struct:(string, value) Hashtbl.t) = Hashtbl.create (List.length l  + 1) in 
       let rec aux = function
