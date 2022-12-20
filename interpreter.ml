@@ -58,17 +58,18 @@ let eval_prog (p: prog): value =
     | Uop(Not, e) -> VBool( not (evalb e env))
     | Let(x, e1, e2)  -> 
       let env' = Env.add x (eval e1 env) env in eval e2 env'
-    | Fix(s, t, e) -> (match e with
-      | Fun(_,_,_) | Strct(_)  ->
-        eval e env
+    | Fix(s, t, e) -> 
+      let n = new_ptr() in
+       begin match  e with 
+      | Strct(_)| Fun(_, _,_ ) -> Hashtbl.add mem n (VClos(s, e, env)); VPtr(n) 
       | _ -> assert false
-      ) 
+      end
     | Fun(x, t, e) -> let n = new_ptr() in
        Hashtbl.add mem n (VClos(x, e, env)); VPtr(n)
     | App(e1, e2) ->
       let var = eval e2 env in 
       begin match Hashtbl.find mem (evalptr e1 env) with
-      | VClos(x, e, env') -> 
+      | VClos(x, e, env') -> if Var(x) = e1 then eval (App(e, e2)) env else
           let new_env = Env.add x var env' in
           eval e new_env
       | _ -> assert false
