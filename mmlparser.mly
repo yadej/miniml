@@ -49,8 +49,10 @@
 %right OR
 %right AND
 
+
 (* priorite op bool*)
 %nonassoc DEQ NEQ LT LE  
+%right RARR LARR 
 
 (* priorite des operateur *) 
 %left PLUS MOINS
@@ -62,7 +64,6 @@
 %nonassoc TRUE FALSE CST
 
 (* priorite des fleche parenthese et point virgule *)
-%right RARR LARR 
 %nonassoc LPAR LBRA 
 
 %start program

@@ -17,6 +17,8 @@ let type_prog prog =
   (* Vérifie que l'expression [e] a le type [type] *)
   let rec check e typ tenv =
     let typ_e = type_expr e tenv in
+    
+    Printf.printf "%s = %s\n" (typ_to_string typ_e) (typ_to_string typ);
     if typ_e <> typ then type_error typ_e typ
 
   (* Calcule le type de l'expression [e] *)
@@ -46,9 +48,11 @@ let type_prog prog =
       let tenv' = SymTbl.add x typ_e1 tenv in
       let typ_e2 = type_expr e2 tenv' in
       typ_e2
-    | If(e1, e2, e3) ->   
-      let typ_e2 = type_expr e2 tenv in
-      check e1 TBool tenv;check e3 typ_e2 tenv;typ_e2
+    | If(e1, e2, e3) ->
+      let typ_e3 = type_expr e3 tenv in
+      check e1 TBool tenv;
+      check e2 typ_e3 tenv;
+      typ_e3
     | Fun(x, t, e') ->
       let tenv' = SymTbl.add x t tenv in
       check (Var(x)) t tenv';
@@ -64,43 +68,30 @@ let type_prog prog =
       let typ_e = type_expr e' tenv' in
       typ_e
     | Seq(e1, e2) ->
-      let typ_e1 = type_expr e1 tenv in
+      type_expr e1 tenv ;
       let typ_e2 = type_expr e2 tenv in
       typ_e2
     | GetF(e', s) ->
       let typ_e' = type_expr e' tenv in
-      let el_s = function
-      | TStrct(new_s) -> new_s
-      | _ -> assert false
-      in
       let typ_se' = el_s typ_e' in
       let program_type = prog.types in
-      let rec f_str = function
-      | (nom, strc)::a2 -> 
-         if String.compare nom typ_se' == 0 then  strc 
-      else f_str(a2)
-      | _ -> assert false
-      in
       let rec trouve_type = function
       | (nom', t, _)::next -> if nom' = s then t else trouve_type next
       | _ -> assert false
       in
-      let typ_s = trouve_type (f_str program_type)  in
+      let typ_s = trouve_type (f_str (program_type, typ_se')  )in
       typ_s
     | SetF(e1, s, e2) -> 
-      Printf.printf "je suis passe par SetF";
       (* On cherche les struct dans les types pour savoir si c'est mutable*)
+      let typ_e1 = type_expr e1 tenv in
+      let typ_se' = el_s typ_e1 in
       let program_type = prog.types in
-      
-      let t = snd (find_struct(e1, program_type , tenv)) in
-      let rec find_t_mutable = function
-      | s1 , (s2, t, b)::r -> if String.compare s1 s2 == 0 then
-        (t, b) else find_t_mutable(s1, r)
-      | _ -> raise (Type_error  "cette variable n appartient pas a la structure")
+      let rec trouve_type = function
+      | (nom', t, b)::next -> if nom' = s then (t, b) else trouve_type next
+      | _ -> assert false
       in
-      let (t1 , b) = find_t_mutable(s, t) in
-      if not b then raise (Type_error "cette variable n'est pas mutable");check e2 t1  tenv;
-      
+      let (t1, b) = trouve_type(f_str(program_type, typ_se')) in
+      if not b then raise (Type_error "cette variable n'est pas mutable");check e2 t1 tenv;
       TUnit
     | Strct( l ) as st ->
        let program_type = prog.types in
@@ -126,6 +117,14 @@ let type_prog prog =
     | st, t1::t2 , tenv-> if eq_struct(st, t1, tenv) then t1 
     else find_struct(st, t2, tenv)
     | _ -> Printf.printf "je fail find_struct \n";assert false
+    and el_s = function
+    | TStrct(new_s) -> new_s
+    | _ -> assert false
+    and f_str = function
+    | (nom, strc)::a2, nomtype -> 
+       if String.compare nom nomtype == 0 then  strc 
+    else f_str(a2, nomtype)
+    | _ -> assert false
   in
 
   type_expr prog.code SymTbl.empty
