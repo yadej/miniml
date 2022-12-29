@@ -1,0 +1,5 @@
+type compteur = { mutable value: int; }
+let n = { value = 1; } in
+let incr () = n.value <- n.value + 1 in
+incr () ; incr () ;
+n.value

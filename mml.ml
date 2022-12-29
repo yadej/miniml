@@ -6,6 +6,7 @@ type typ =
   | TUnit
   | TFun of typ * typ
   | TStrct of string
+  | TList of typ
 type strct = (string * typ * bool) list
 
 let rec typ_to_string = function
@@ -15,10 +16,11 @@ let rec typ_to_string = function
   | TFun(typ1, typ2) -> 
      Printf.sprintf "(%s) -> %s" (typ_to_string typ1) (typ_to_string typ2)
   | TStrct s -> Printf.sprintf "Struct %s" s
+  | TList l -> Printf.sprintf "List %s" (typ_to_string l)
 
 type uop = Neg | Not
 type bop = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Le | And | Or
-
+ 
 type expr =
   | Int   of int
   | Bool  of bool
@@ -35,6 +37,10 @@ type expr =
   | GetF  of expr * string
   | SetF  of expr * string * expr
   | Seq   of expr * expr
+  | List of expr list
+  | AppList of expr * expr
+  | GetList of expr * int
+  | SetList of expr * int * expr
 
 type prog = {
     types: (string * strct) list;

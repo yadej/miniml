@@ -10,16 +10,24 @@ type value =
   | VInt   of int
   | VBool  of bool
   | VUnit
+  | VList of value list
   | VPtr   of int
 (* Élements du tas *)
 type heap_value =
   | VClos  of string * expr * value Env.t
   | VStrct of (string, value) Hashtbl.t
 
+let rec print_value_list = function
+| VInt n  -> Printf.printf "%d " n
+| VBool b -> Printf.printf "%b " b
+| VUnit   -> Printf.printf "() "
+| VList l -> Printf.printf "["; List.iter (print_value_list) l; Printf.printf "]  "
+| VPtr p  -> Printf.printf "@%d " p
 let print_value = function
   | VInt n  -> Printf.printf "%d\n" n
   | VBool b -> Printf.printf "%b\n" b
-  | VUnit   -> Printf.printf "()\n"
+  | VUnit   -> Printf.printf "() "
+  | VList l -> Printf.printf "["; List.iter (print_value_list) l; Printf.printf "] \n"
   | VPtr p  -> Printf.printf "@%d\n" p
 
 (* Interprétation d'un programme complet *)
@@ -42,6 +50,7 @@ let eval_prog (p: prog): value =
     | Bool b -> VBool b
     | Unit -> VUnit
     | Var x -> Env.find x env 
+    | List l -> VList( eval_list l env)
     | Bop(Add, e1, e2) -> VInt (evali e1 env + evali e2 env)
     | Bop(Mul, e1, e2) -> VInt (evali e1 env * evali e2 env)
     | Bop(Sub, e1, e2) -> VInt (evali e1 env - evali e2 env)
@@ -113,6 +122,12 @@ let eval_prog (p: prog): value =
         | VPtr(n) -> n
         | _ -> assert false
     end
+  and eval_list (el: expr list) (env: value Env.t): value list =
+    let rec evalAllList = function
+    | [] -> []
+    | x::s -> (eval x env)::(evalAllList s)
+    in
+    evalAllList el
   in
 
   eval p.code Env.empty

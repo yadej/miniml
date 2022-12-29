@@ -18,7 +18,6 @@ let type_prog prog =
   let rec check e typ tenv =
     let typ_e = type_expr e tenv in
     
-    Printf.printf "%s = %s\n" (typ_to_string typ_e) (typ_to_string typ);
     if typ_e <> typ then type_error typ_e typ
 
   (* Calcule le type de l'expression [e] *)
@@ -97,14 +96,28 @@ let type_prog prog =
        let program_type = prog.types in
        let (nom, t) = find_struct(st, program_type, tenv) in
        TStrct(nom)
-    and typ_f = function
-      (* Regarde dans la structure si le nom correspond 
-         a un nom de type dans la structure 
-         puis on donne son type *)
-    | (k, b, _)::r , s -> Printf.printf "k: %s == s: %s"k s;
-       if s == k  then b  
-    else typ_f(r, s)
-    | _ -> assert false
+    | List l -> begin match l with
+      | [] -> TStrct("alpha")
+      |  x::s ->
+        let typ_x = type_expr x tenv in
+        checkList(s,typ_x,tenv)
+      end
+    | AppList(x, l) ->
+      let typ_x = type_expr x tenv in
+      check l (TList(typ_x)) tenv;
+      TList(typ_x)
+    | GetList(e, n) ->
+      let typ_e = type_expr e tenv in
+      begin match typ_e with
+      | TList(l) -> l
+      | _ -> error (Printf.sprintf "%s n'est pas de type list" (typ_to_string typ_e ))
+      end
+    | SetList(e1, n, e2) ->
+      let typ_e1 = type_expr e1 tenv in
+      begin match typ_e1 with
+      | TList(l) -> check e2 l tenv;TUnit
+      | _ -> error (Printf.sprintf "%s n'est pas de type list" (typ_to_string typ_e1 ))
+      end
     and eq_struct = function
       (* Regarde pour chaque nom et type que c est les meme que dans la structure*)
     | Strct((k, b)::r1), ( a, (s, t, boolean)::r2) , tenv
@@ -125,6 +138,9 @@ let type_prog prog =
        if String.compare nom nomtype == 0 then  strc 
     else f_str(a2, nomtype)
     | _ -> assert false
+    and checkList = function
+    |[], typ, tenv -> TList(typ)
+    | x::s, typ, tenv -> check x typ tenv; checkList (s, typ, tenv)
   in
 
   type_expr prog.code SymTbl.empty
