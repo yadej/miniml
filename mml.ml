@@ -41,6 +41,7 @@ type expr =
   | AppList of expr * expr
   | GetList of expr * int
   | SetList of expr * int * expr
+  | Print of expr
 
 type prog = {
     types: (string * strct) list;

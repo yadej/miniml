@@ -32,6 +32,8 @@
 (* fonction *)
 %token FUN 
 %token LET REC IN
+(* Print *)
+%token PRINT
 (* End of line *)
 %token EOF
 
@@ -39,7 +41,9 @@
 %nonassoc IN
 %right RARR
 %nonassoc LBRA
-%left LIST
+%left DCOMMA
+%nonassoc COMMA
+%right LIST
 (* priorite des point virgule*)
 %right IDENT
 %nonassoc TRUE FALSE CST 
@@ -107,8 +111,7 @@ simple_expression:
 | LPAR e=expression RPAR { e }
 | LCRO l=lists RCRO { List(l) }
 | LCRO RCRO {List([])}
-| s=simple_expression DCOMMA DCOMMA LCRO RCRO { AppList(s, List([]) ) }
-| s=simple_expression DCOMMA DCOMMA LCRO s2=simple_expression RCRO { AppList(s, s2) }
+| s=simple_expression DCOMMA DCOMMA s2=simple_expression { AppList(s, s2) }
 | s=simple_expression COMMA LCRO n=CST RCRO { GetList(s, n) }
 ;
 
@@ -130,6 +133,7 @@ expression:
 | s=simple_expression COMMA id=IDENT LARR e=expression { SetF(s, id, e) }
 | seq_=sequence {seq_}
 | s=simple_expression COMMA LCRO n=CST RCRO LARR e=expression { SetList(s, n, e) }
+| PRINT LPAR s=simple_expression RPAR { Print(s) }
 ;
 
 argumentLet:

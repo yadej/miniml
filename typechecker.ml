@@ -118,6 +118,7 @@ let type_prog prog =
       | TList(l) -> check e2 l tenv;TUnit
       | _ -> error (Printf.sprintf "%s n'est pas de type list" (typ_to_string typ_e1 ))
       end
+    | Print(e) -> ignore(type_expr e tenv); TUnit
     and eq_struct = function
       (* Regarde pour chaque nom et type que c est les meme que dans la structure*)
     | Strct((k, b)::r1), ( a, (s, t, boolean)::r2) , tenv

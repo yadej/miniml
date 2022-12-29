@@ -10,24 +10,17 @@ type value =
   | VInt   of int
   | VBool  of bool
   | VUnit
-  | VList of value list
   | VPtr   of int
 (* Élements du tas *)
 type heap_value =
   | VClos  of string * expr * value Env.t
   | VStrct of (string, value) Hashtbl.t
+  | VList of value list
 
-let rec print_value_list = function
-| VInt n  -> Printf.printf "%d " n
-| VBool b -> Printf.printf "%b " b
-| VUnit   -> Printf.printf "() "
-| VList l -> Printf.printf "["; List.iter (print_value_list) l; Printf.printf "]  "
-| VPtr p  -> Printf.printf "@%d " p
 let print_value = function
   | VInt n  -> Printf.printf "%d\n" n
   | VBool b -> Printf.printf "%b\n" b
-  | VUnit   -> Printf.printf "() "
-  | VList l -> Printf.printf "["; List.iter (print_value_list) l; Printf.printf "] \n"
+  | VUnit   -> Printf.printf "() \n "
   | VPtr p  -> Printf.printf "@%d\n" p
 
 (* Interprétation d'un programme complet *)
@@ -50,7 +43,6 @@ let eval_prog (p: prog): value =
     | Bool b -> VBool b
     | Unit -> VUnit
     | Var x -> Env.find x env 
-    | List l -> VList( eval_list l env)
     | Bop(Add, e1, e2) -> VInt (evali e1 env + evali e2 env)
     | Bop(Mul, e1, e2) -> VInt (evali e1 env * evali e2 env)
     | Bop(Sub, e1, e2) -> VInt (evali e1 env - evali e2 env)
@@ -100,7 +92,27 @@ let eval_prog (p: prog): value =
       | (a, b)::r -> Hashtbl.add mem_struct a (eval b env); aux r
       | _ -> ()
       in aux l;
-      Hashtbl.add mem n (VStrct(mem_struct)); VPtr(n)     
+      Hashtbl.add mem n (VStrct(mem_struct)); VPtr(n) 
+    | List l -> let n = new_ptr () in
+        Hashtbl.add mem n (VList(eval_list l env)); VPtr(n)
+    | AppList(x, e) -> let val_x = eval x env in
+       let n = evalptr e env in
+       begin match Hashtbl.find mem n with
+      | VList(l) -> Hashtbl.replace mem n (VList( val_x::l )); VPtr(n)
+      | _ -> assert false
+      end    
+    | GetList(e, n) -> begin match Hashtbl.find mem (evalptr e env) with
+      | VList(l) ->  List.nth l n
+      | _ -> assert false
+      end
+    | SetList(e1, n, e2) -> let pos = evalptr e1 env in
+       begin match Hashtbl.find mem pos with
+      | VList(l) ->  let replace l pos a = List.mapi (fun i x -> if i = pos then a else x) l in
+            let evale1 = VList( (replace l n (eval e2 env) )) in
+            Hashtbl.replace mem pos evale1; VUnit
+      | _ -> assert false 
+      end
+    | Print(e) -> print_eval (eval e env);Printf.printf "\n" ; VUnit
   (* Évaluation d'une expression dont la valeur est supposée entière *)
   and evali (e: expr) (env: value Env.t): int = 
     match eval e env with
@@ -128,6 +140,24 @@ let eval_prog (p: prog): value =
     | x::s -> (eval x env)::(evalAllList s)
     in
     evalAllList el
+  and print_eval (v: value): unit =
+    begin match v with
+    | VInt n -> Printf.printf "%d " n
+    | VBool b -> Printf.printf "%b " b
+    | VUnit   -> Printf.printf "() "
+    | VPtr p  -> print_eval_vprt p 
+    end
+  and print_eval_vprt (n: int): unit =
+    begin match Hashtbl.find mem n with
+    | VClos(x,Fun(_), env')|VClos(x,Fix(_), env') -> Printf.printf "%d " n
+    | VClos(_, e, env') -> print_eval (eval e env')
+    | VStrct(l) -> Printf.printf "{ "; 
+          Hashtbl.iter (fun x y -> Printf.printf "%s = " x; print_eval y; Printf.printf ";" ) l;
+          Printf.printf "}"
+    | VList( l ) -> Printf.printf "[";
+        (List.iter print_eval l );
+        Printf.printf "]" 
+    end
   in
 
   eval p.code Env.empty
