@@ -61,6 +61,8 @@ rule token = parse
       { DIV }
   | '='
       { EQ }
+  | "<>"
+      { NEQS }
   | "=="
       { DEQ }
   | "!="

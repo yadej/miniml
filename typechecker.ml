@@ -37,11 +37,9 @@ let type_prog prog =
       check e1 TInt tenv; check e2 TInt tenv; TBool
     | Bop(( And | Or), e1, e2) ->
       check e1 TBool tenv; check e2 TBool tenv; TBool
-    | Bop(( Eq | Neq ), e1, e2) ->
+    | Bop(( Eq | Neq | Eqs | Neqs ), e1, e2) ->
         let typ_e1 = type_expr e1 tenv in
-        (*le deuxieme check ne sert pas a grand chose mais pour etre sur*)
-        let typ_e2 = type_expr e2 tenv in
-        check e1 typ_e2 tenv;check e2 typ_e1 tenv;TBool
+        check e2 typ_e1 tenv;TBool
     | Let(x, e1, e2) ->
       let typ_e1 = type_expr e1 tenv in
       let tenv' = SymTbl.add x typ_e1 tenv in

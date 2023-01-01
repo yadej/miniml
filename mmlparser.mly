@@ -7,7 +7,7 @@
 %}
 
 (* les exp bool*)
-%token EQ DEQ NEQ LT LE AND OR
+%token EQ DEQ NEQ LT LE AND OR NEQS
 (* operateur *)
 %token PLUS STAR DIV MOD
 %token MOINS NOT NEG
@@ -59,7 +59,7 @@
 %right LARR 
 
 (* priorite op bool*)
-%nonassoc DEQ NEQ LT LE  
+%nonassoc DEQ NEQ LT LE EQ NEQS
 
 (* priorite des operateur *) 
 %left PLUS MOINS
@@ -172,4 +172,6 @@ unop:
 | LE { Le }
 | AND { And }
 | OR { Or }
+| EQ { Eqs }
+| NEQS { Neqs }
 ;

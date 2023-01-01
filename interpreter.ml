@@ -58,6 +58,8 @@ let eval_prog (p: prog): value =
     | Seq(e1, e2) -> eval e1 env; eval e2 env
     | Bop(Eq, e1, e2) -> VBool (evalequal e1 e2 env)
     | Bop(Neq, e1, e2) -> VBool (not (evalequal e1 e2 env))
+    | Bop(Eqs, e1, e2) -> VBool (eval_eqs e1 e2 env)
+    | Bop(Neqs, e1, e2) -> VBool (not (eval_eqs e1 e2 env))
     | Uop(Not, e) -> VBool( not (evalb e env))
     | Let(x, e1, e2)  -> 
       let env' = Env.add x (eval e1 env) env in eval e2 env'
@@ -161,6 +163,22 @@ let eval_prog (p: prog): value =
         (List.iter print_eval l );
         Printf.printf "]" 
     end
+    and eval_eqs (e1: expr) (e2: expr) (env: value Env.t): bool = 
+      eval_eq_structurelle (eval e1 env) (eval e2 env) env
+    and eval_eq_structurelle (v1: value) (v2: value) (env: value Env.t): bool =
+    match v1, v2 with
+    |VInt a, VInt b -> a = b
+    |VBool a ,VBool b -> a = b
+    |VPtr a, VPtr b -> eval_eq_struct_heap_value a b env
+    |_, _ -> false
+    and eval_eq_struct_heap_value (n1: int) (n2: int) (env: value Env.t): bool =
+    match (Hashtbl.find mem n1),(Hashtbl.find mem n2) with
+    | (VClos(_, (Fun(_)|Fix(_)), _)), (VClos(_, (Fun(_)|Fix(_)), _)) -> failwith ("Comparison with 2 functions ")
+    | (VList l1), (VList l2) -> List.for_all2 (fun x y -> eval_eq_structurelle x y env) l1 l2
+    | (VStrct s1), (VStrct s2) -> let l = Hashtbl.fold (fun k v acc -> (k, v)::acc) s1 [] in
+      List.for_all (fun (x,y)-> try  eval_eq_structurelle (Hashtbl.find s2 x) y env with Not_found -> false  ) l
+    | (VClos(_, e1, _)), (VClos(_, e2, _)) -> eval_eqs e1 e2 env
+    | _ -> false
   in
 
   eval p.code Env.empty

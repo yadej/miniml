@@ -1,0 +1,7 @@
+type t = { a: int; b: bool; }
+
+let t1 = { a= 5 ; b = false ;} in
+let t2 = { a= 5 ; b = false ;} in
+let t3 = { a= 8 ; b = false ;} in
+print( (t1 = t3) );
+t1 = t2

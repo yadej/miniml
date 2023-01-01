@@ -21,7 +21,7 @@ let rec typ_to_string = function
   | TList l -> Printf.sprintf "List %s" (typ_to_string l)
 
 type uop = Neg | Not
-type bop = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Le | And | Or
+type bop = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Le | And | Or | Eqs | Neqs
  
 type expr =
   | Int   of int
