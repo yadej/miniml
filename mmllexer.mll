@@ -38,7 +38,7 @@
 let digit = ['0'-'9']
 let number = digit+
 let alpha = ['a'-'z' 'A'-'Z']
-let ident = ['a'-'z' '_'] (alpha | '_' | digit)*
+let ident = ['a'-'z' '_' 'A'-'Z'] (alpha | '_' | digit)*
   
 rule token = parse
   | ['\n']
@@ -73,6 +73,8 @@ rule token = parse
       { AND }
   | "||"
       { OR }
+  | "|"
+      { BAR }
   | "("
      { LPAR }
   | ")"
@@ -92,9 +94,9 @@ rule token = parse
   | ";"
      { SEMI }
   | ":"
-     { DCOMMA }
+     { DPOINT}
   | "."
-     { COMMA }
+     { POINT }
   | _
       { raise (Lexing_error ("unknown character : " ^ (lexeme lexbuf))) }
   | eof

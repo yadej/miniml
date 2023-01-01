@@ -25,7 +25,7 @@ let type_prog prog =
     | Int _  -> TInt
     | Bool _ -> TBool
     | Var x ->( try  SymTbl.find x tenv 
-            with Not_found -> raise (Type_error "x n'est pas dans la map"))
+            with Not_found -> find_enum(x, prog.types))
     | Unit -> TUnit
     | Uop(Neg, e') ->
       check e' TInt tenv; TInt
@@ -75,10 +75,10 @@ let type_prog prog =
       let typ_se' = el_s typ_e' in
       let program_type = prog.types in
       let rec trouve_type = function
-      | (nom', t, _)::next -> if nom' = s then t else trouve_type next
+      | (nom', t, _)::next-> if nom' = s then t else (trouve_type  next)
       | _ -> assert false
       in
-      let typ_s = trouve_type (f_str (program_type, typ_se')  )in
+      let typ_s = trouve_type ( f_str(program_type, typ_se')  )in
       typ_s
     | SetF(e1, s, e2) -> 
       (* On cherche les struct dans les types pour savoir si c'est mutable*)
@@ -86,7 +86,7 @@ let type_prog prog =
       let typ_se' = el_s typ_e1 in
       let program_type = prog.types in
       let rec trouve_type = function
-      | (nom', t, b)::next -> if nom' = s then (t, b) else trouve_type next
+      |  ( (nom', t, b)::next ) -> if nom' = s then (t, b) else trouve_type(next)
       | _ -> assert false
       in
       let (t1, b) = trouve_type(f_str(program_type, typ_se')) in
@@ -121,10 +121,10 @@ let type_prog prog =
     | Print(e) -> ignore(type_expr e tenv); TUnit
     and eq_struct = function
       (* Regarde pour chaque nom et type que c est les meme que dans la structure*)
-    | Strct((k, b)::r1), ( a, (s, t, boolean)::r2) , tenv
+    | Strct((k, b)::r1), ( a,(Typ_Strct ((s, t, boolean)::r2))) , tenv
     when  String.compare k s == 0 && (type_expr b tenv) = t  ->
-      eq_struct( Strct(r1),(a,(r2)) , tenv)
-    | Strct([]), (_, []) , tenv-> true
+      eq_struct( Strct(r1),(a,(Typ_Strct r2)) , tenv)
+    | Strct([]), (_, (Typ_Strct [])) , tenv-> true
     | _ -> false
     and find_struct = function
       (* Regarde pour chaque structure si il correspond a st*)
@@ -135,13 +135,18 @@ let type_prog prog =
     | TStrct(new_s) -> new_s
     | _ -> assert false
     and f_str = function
-    | (nom, strc)::a2, nomtype -> 
-       if String.compare nom nomtype == 0 then  strc 
+    | (nom, Typ_Strct strc)::a2, nomtype -> 
+       if nom = nomtype then strc 
     else f_str(a2, nomtype)
     | _ -> assert false
     and checkList = function
     |[], typ, tenv -> TList(typ)
     | x::s, typ, tenv -> check x typ tenv; checkList (s, typ, tenv)
+    and find_enum = function
+    | s, t1::t2 -> if eq_enum(s,snd t1) then TStrct(fst t1) else find_enum(s, t2)
+    | s, [] -> error (Printf.sprintf "%s n'est pas defini" s)
+    and eq_enum = function
+    | s, Typ_Enum te -> List.exists (fun x  -> x = s) te
+    | _ -> false
   in
-
   type_expr prog.code SymTbl.empty

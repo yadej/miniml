@@ -1,0 +1,8 @@
+type couleur = 
+    | Pique
+    | Coeur
+    | Carreau
+    | Trefle
+
+let x = Pique in
+if x == Carreau then Trefle else Coeur

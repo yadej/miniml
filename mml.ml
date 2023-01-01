@@ -7,7 +7,9 @@ type typ =
   | TFun of typ * typ
   | TStrct of string
   | TList of typ
-type strct = (string * typ * bool) list
+type strct = 
+  | Typ_Strct of (string * typ * bool) list
+  | Typ_Enum of string list
 
 let rec typ_to_string = function
   | TInt  -> "int"

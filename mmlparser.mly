@@ -25,8 +25,8 @@
 (* Paire *)
 (* ( ) { } <-  ->  [ ]*)
 %token LPAR RPAR LBRA RBRA LARR RARR LCRO RCRO
-(* ; : . *)
-%token SEMI DCOMMA COMMA
+(* ; : .  |*)
+%token SEMI DPOINT POINT BAR
 (* Condition *)
 %token IF THEN ELSE
 (* fonction *)
@@ -41,8 +41,8 @@
 %nonassoc IN
 %right RARR
 %nonassoc LBRA
-%left DCOMMA
-%nonassoc COMMA
+%left DPOINT
+%nonassoc POINT
 %right LIST
 (* priorite des point virgule*)
 %right IDENT
@@ -82,13 +82,17 @@ program:
 
 type_def:
 | TYPE id1=IDENT EQ LBRA st_def=struct_type_def+ RBRA{
-        (id1,  st_def  ) 
+        (id1,  Typ_Strct st_def  ) 
    } 
+| TYPE id=IDENT EQ enum_def=enumere_type_def+  { (id, Typ_Enum enum_def)}
 ;
 
 struct_type_def:
-| MUTABLE id=IDENT DCOMMA t=type_ SEMI  { (id, t, true) }
-| id=IDENT DCOMMA t=type_ SEMI  { (id, t, false) }
+| MUTABLE id=IDENT DPOINT t=type_ SEMI  { (id, t, true) }
+| id=IDENT DPOINT t=type_ SEMI  { (id, t, false) }
+
+enumere_type_def:
+| BAR id=IDENT { id }
 
 type_:
 | INT { TInt }
@@ -106,13 +110,13 @@ simple_expression:
 | FALSE { Bool(false) }
 | LPAR RPAR { Unit }
 | id=IDENT { Var(id) }
-| s=simple_expression COMMA id=IDENT { GetF(s, id) }
+| s=simple_expression POINT id=IDENT { GetF(s, id) }
 | LBRA stsimpexp=struct_simple_exp+ RBRA { Strct( stsimpexp ) } 
 | LPAR e=expression RPAR { e }
 | LCRO l=lists RCRO { List(l) }
 | LCRO RCRO {List([])}
-| s=simple_expression DCOMMA DCOMMA s2=simple_expression { AppList(s, s2) }
-| s=simple_expression COMMA LCRO n=CST RCRO { GetList(s, n) }
+| s=simple_expression DPOINT DPOINT s2=simple_expression { AppList(s, s2) }
+| s=simple_expression POINT LCRO n=CST RCRO { GetList(s, n) }
 ;
 
 struct_simple_exp:
@@ -125,14 +129,14 @@ expression:
 | e=expression s=simple_expression { App(e, s) }
 | IF e1=expression THEN e2=expression { If(e1,e2, Unit)  }
 | IF e1=expression THEN e2=expression ELSE e3=expression { If(e1,e2,e3) }
-| FUN LPAR id=IDENT DCOMMA t=type_ RPAR RARR e=expression { Fun(id, t, e) }
+| FUN LPAR id=IDENT DPOINT t=type_ RPAR RARR e=expression { Fun(id, t, e) }
 | LET id=IDENT v=argumentLet EQ e1=expression IN e2=expression { Let(id, mk_fun v e1, e2) } 
-| LET REC id=IDENT v=argumentLet DCOMMA t=type_ EQ e1=expression IN e2=expression {
+| LET REC id=IDENT v=argumentLet DPOINT t=type_ EQ e1=expression IN e2=expression {
   Let(id, Fix(id,mk_fun_type v t, mk_fun v e1 ),e2 )
 } 
-| s=simple_expression COMMA id=IDENT LARR e=expression { SetF(s, id, e) }
+| s=simple_expression POINT id=IDENT LARR e=expression { SetF(s, id, e) }
 | seq_=sequence {seq_}
-| s=simple_expression COMMA LCRO n=CST RCRO LARR e=expression { SetList(s, n, e) }
+| s=simple_expression POINT LCRO n=CST RCRO LARR e=expression { SetList(s, n, e) }
 | PRINT LPAR s=simple_expression RPAR { Print(s) }
 ;
 
@@ -141,7 +145,7 @@ argumentLet:
 | v=variable* {v}
 ;
 variable:
-| LPAR id=IDENT DCOMMA t=type_ RPAR { (id, t) } 
+| LPAR id=IDENT DPOINT t=type_ RPAR { (id, t) } 
 ;
 sequence:
 | e1=expression SEMI e2=expression { Seq(e1, e2) }

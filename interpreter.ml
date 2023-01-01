@@ -11,6 +11,7 @@ type value =
   | VBool  of bool
   | VUnit
   | VPtr   of int
+  | VString of string
 (* Élements du tas *)
 type heap_value =
   | VClos  of string * expr * value Env.t
@@ -22,6 +23,7 @@ let print_value = function
   | VBool b -> Printf.printf "%b\n" b
   | VUnit   -> Printf.printf "() \n "
   | VPtr p  -> Printf.printf "@%d\n" p
+  | VString s -> Printf.printf "%s\n" s
 
 (* Interprétation d'un programme complet *)
 let eval_prog (p: prog): value =
@@ -42,7 +44,7 @@ let eval_prog (p: prog): value =
     | Int n  -> VInt n
     | Bool b -> VBool b
     | Unit -> VUnit
-    | Var x -> Env.find x env 
+    | Var x -> (try Env.find x env with Not_found -> VString(x) )
     | Bop(Add, e1, e2) -> VInt (evali e1 env + evali e2 env)
     | Bop(Mul, e1, e2) -> VInt (evali e1 env * evali e2 env)
     | Bop(Sub, e1, e2) -> VInt (evali e1 env - evali e2 env)
@@ -146,6 +148,7 @@ let eval_prog (p: prog): value =
     | VBool b -> Printf.printf "%b " b
     | VUnit   -> Printf.printf "() "
     | VPtr p  -> print_eval_vprt p 
+    | VString s -> Printf.printf "%s" s
     end
   and print_eval_vprt (n: int): unit =
     begin match Hashtbl.find mem n with
