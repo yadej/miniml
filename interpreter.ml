@@ -66,7 +66,10 @@ let eval_prog (p: prog): value =
     | Fix(s, t, e) -> 
       let n = new_ptr() in
        begin match  e with 
-      | Strct(_)| Fun(_, _,_ ) -> Hashtbl.add mem n (VClos(s, e, env)); VPtr(n) 
+      | Strct(l) -> let (mem_struct:(string, value) Hashtbl.t) = Hashtbl.create (List.length l  + 1) in 
+        let hashFix = List.iter (fun (x,y) -> Hashtbl.add mem_struct x (eval y env)) l in
+        Hashtbl.add mem n (VStrct(mem_struct)); VPtr(n)
+      | Fun(_, _,_ ) -> Hashtbl.add mem n (VClos(s, e, env)); VPtr(n) 
       | _ -> assert false
       end
     | Fun(x, t, e) -> let n = new_ptr() in

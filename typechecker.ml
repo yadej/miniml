@@ -17,8 +17,11 @@ let type_prog prog =
   (* Vérifie que l'expression [e] a le type [type] *)
   let rec check e typ tenv =
     let typ_e = type_expr e tenv in
-    
-    if typ_e <> typ then type_error typ_e typ
+    let check2 = begin match typ_e with
+    | TList(_) when e = List([]) -> true
+    | _ -> false
+    end in
+    if typ_e <> typ && check2 then type_error typ_e typ
 
   (* Calcule le type de l'expression [e] *)
   and type_expr e tenv = match e with
@@ -65,7 +68,8 @@ let type_prog prog =
       let typ_e = type_expr e' tenv' in
       typ_e
     | Seq(e1, e2) ->
-      type_expr e1 tenv ;
+      let typ_e1 = type_expr e1 tenv in 
+      if typ_e1 = TUnit then Printf.printf "this expresion is not unit";
       let typ_e2 = type_expr e2 tenv in
       typ_e2
     | GetF(e', s) ->
@@ -95,7 +99,7 @@ let type_prog prog =
        let (nom, t) = find_struct(st, program_type, tenv) in
        TStrct(nom)
     | List l -> begin match l with
-      | [] -> TStrct("alpha")
+      | [] -> TStrct("alpha") (* Je fais un random car il sait pas vraiment*)
       |  x::s ->
         let typ_x = type_expr x tenv in
         checkList(s,typ_x,tenv)
@@ -128,7 +132,7 @@ let type_prog prog =
       (* Regarde pour chaque structure si il correspond a st*)
     | st, t1::t2 , tenv-> if eq_struct(st, t1, tenv) then t1 
     else find_struct(st, t2, tenv)
-    | _ -> Printf.printf "je fail find_struct \n";assert false
+    | _ -> error (Printf.sprintf "Cette structure n'est pas defini")
     and el_s = function
     | TStrct(new_s) -> new_s
     | _ -> assert false
