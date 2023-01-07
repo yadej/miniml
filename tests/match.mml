@@ -1,0 +1,8 @@
+(*Match pas encore fait*)
+type chaine =
+    | Nil
+    | Cons of int * chaine
+let x = Cons (4, Cons (5, Nil)) in
+match x with
+| Nil -> 0
+| (Cons (n, p)) -> 5 + n

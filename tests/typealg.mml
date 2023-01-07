@@ -1,0 +1,5 @@
+type chaine =
+    | Nil
+    | Cons of int * chaine
+let x = Cons (4, Cons (5, Nil)) in
+print(x); x

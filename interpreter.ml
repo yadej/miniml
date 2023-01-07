@@ -12,18 +12,32 @@ type value =
   | VUnit
   | VPtr   of int
   | VString of string
+  | VTuple of value list
 (* Élements du tas *)
 type heap_value =
   | VClos  of string * expr * value Env.t
   | VStrct of (string, value) Hashtbl.t
   | VList of value list
+  | VAlg of string * value
 
-let print_value = function
+let rec print_value = function
   | VInt n  -> Printf.printf "%d\n" n
   | VBool b -> Printf.printf "%b\n" b
   | VUnit   -> Printf.printf "() \n "
   | VPtr p  -> Printf.printf "@%d\n" p
   | VString s -> Printf.printf "%s\n" s
+  | VTuple t -> Printf.printf "("; (print_value_without_space (List.hd t));
+      List.iter (fun x -> Printf.printf ", ";(print_value_without_space x)) (List.tl t );
+      Printf.printf ")\n"
+and print_value_without_space = function
+| VInt n  -> Printf.printf "%d" n
+| VBool b -> Printf.printf "%b" b
+| VUnit   -> Printf.printf "()  "
+| VPtr p  -> Printf.printf "@%d" p
+| VString s -> Printf.printf "%s" s
+| VTuple t -> Printf.printf "("; (print_value (List.hd t));
+    List.iter (fun x -> Printf.printf ", ";(print_value x)) (List.tl t );
+    Printf.printf ")"
 
 (* Interprétation d'un programme complet *)
 let eval_prog (p: prog): value =
@@ -44,7 +58,9 @@ let eval_prog (p: prog): value =
     | Int n  -> VInt n
     | Bool b -> VBool b
     | Unit -> VUnit
+    | JokerMatch -> VUnit
     | Var x -> (try Env.find x env with Not_found -> VString(x) )
+    | Tuple l -> VTuple( eval_list l env )
     | Bop(Add, e1, e2) -> VInt (evali e1 env + evali e2 env)
     | Bop(Mul, e1, e2) -> VInt (evali e1 env * evali e2 env)
     | Bop(Sub, e1, e2) -> VInt (evali e1 env - evali e2 env)
@@ -67,7 +83,7 @@ let eval_prog (p: prog): value =
       let n = new_ptr() in
        begin match  e with 
       | Strct(l) -> let (mem_struct:(string, value) Hashtbl.t) = Hashtbl.create (List.length l  + 1) in 
-        let hashFix = List.iter (fun (x,y) -> Hashtbl.add mem_struct x (eval y env)) l in
+        let () = List.iter (fun (x,y) -> Hashtbl.add mem_struct x (eval y env)) l in
         Hashtbl.add mem n (VStrct(mem_struct)); VPtr(n)
       | Fun(_, _,_ ) -> Hashtbl.add mem n (VClos(s, e, env)); VPtr(n) 
       | _ -> assert false
@@ -76,10 +92,13 @@ let eval_prog (p: prog): value =
        Hashtbl.add mem n (VClos(x, e, env)); VPtr(n)
     | App(e1, e2) ->
       let var = eval e2 env in 
-      begin match Hashtbl.find mem (evalptr e1 env) with
-      | VClos(x, e, env') -> if Var(x) = e1 then eval (App(e, e2)) env else
+      begin match Hashtbl.find_opt mem (evalapp e1 env) with
+      | Some VClos(x, e, env') -> if Var(x) = e1 then eval (App(e, e2)) env else
           let new_env = Env.add x var env' in
           eval e new_env
+      | None -> let x = (fun (VString x) -> x) (eval e1 env)  in
+         let n = new_ptr() in
+         Hashtbl.add mem n (VAlg(x, var));VPtr(n)
       | _ -> assert false
         end
     | If(e1, e2, e3) -> if (evalb e1 env) then eval e2 env 
@@ -135,11 +154,18 @@ let eval_prog (p: prog): value =
     |VInt a, VInt b -> a = b
     |VBool a ,VBool b -> a = b
     |VPtr a, VPtr b -> a = b
+    |VString a, VString b -> a = b
     |_, _ -> false
   and evalptr (e: expr) (env: value Env.t): int =
     begin match eval e env with
         | VPtr(n) -> n
-        | _ -> assert false
+        | _ -> failwith "ce n'est pas une fonction"
+    end
+  and evalapp (e: expr) (env: value Env.t): int =
+    begin match eval e env with
+        | VPtr(n) -> n
+        | VString(_) -> -1
+        | _ -> failwith "ce n'est pas une fonction"
     end
   and eval_list (el: expr list) (env: value Env.t): value list =
     let rec evalAllList = function
@@ -154,6 +180,8 @@ let eval_prog (p: prog): value =
     | VUnit   -> Printf.printf "() "
     | VPtr p  -> print_eval_vprt p 
     | VString s -> Printf.printf "%s" s
+    | VTuple l -> Printf.printf "(";(print_eval (List.hd l));
+        List.iter (fun x -> Printf.printf ", "; print_eval x) (List.tl l);Printf.printf ")"
     end
   and print_eval_vprt (n: int): unit =
     begin match Hashtbl.find mem n with
@@ -165,6 +193,7 @@ let eval_prog (p: prog): value =
     | VList( l ) -> Printf.printf "[";
         (List.iter print_eval l );
         Printf.printf "]" 
+    | VAlg(s, v) -> Printf.printf "%s " s; print_eval v
     end
     and eval_eqs (e1: expr) (e2: expr) (env: value Env.t): bool = 
       eval_eq_structurelle (eval e1 env) (eval e2 env) env
@@ -173,6 +202,8 @@ let eval_prog (p: prog): value =
     |VInt a, VInt b -> a = b
     |VBool a ,VBool b -> a = b
     |VPtr a, VPtr b -> eval_eq_struct_heap_value a b env
+    |VString a, VString b -> a = b
+    |VTuple a, VTuple b -> List.for_all2 (fun x y -> eval_eq_structurelle x y env) a b
     |_, _ -> false
     and eval_eq_struct_heap_value (n1: int) (n2: int) (env: value Env.t): bool =
     match (Hashtbl.find mem n1),(Hashtbl.find mem n2) with
@@ -181,7 +212,10 @@ let eval_prog (p: prog): value =
     | (VStrct s1), (VStrct s2) -> let l = Hashtbl.fold (fun k v acc -> (k, v)::acc) s1 [] in
       List.for_all (fun (x,y)-> try  eval_eq_structurelle (Hashtbl.find s2 x) y env with Not_found -> false  ) l
     | (VClos(_, e1, _)), (VClos(_, e2, _)) -> eval_eqs e1 e2 env
+    | (VAlg(s1, v1)), (VAlg(s2, v2)) ->  if s1 = s2 then eval_eq_structurelle v1 v2 env 
+        else false
     | _ -> false
+
   in
 
   eval p.code Env.empty

@@ -19,6 +19,7 @@ let type_prog prog =
     let typ_e = type_expr e tenv in
     let check2 = begin match typ_e with
     | TList(_) when e = List([]) -> true
+    | TJoker -> false
     | _ -> false
     end in
     if typ_e <> typ && check2 then type_error typ_e typ
@@ -30,6 +31,7 @@ let type_prog prog =
     | Var x ->( try  SymTbl.find x tenv 
             with Not_found -> find_enum(x, prog.types))
     | Unit -> TUnit
+    | JokerMatch -> TJoker
     | Uop(Neg, e') ->
       check e' TInt tenv; TInt
     | Uop(Not, e') ->
@@ -69,7 +71,6 @@ let type_prog prog =
       typ_e
     | Seq(e1, e2) ->
       let typ_e1 = type_expr e1 tenv in 
-      if typ_e1 = TUnit then Printf.printf "this expresion is not unit";
       let typ_e2 = type_expr e2 tenv in
       typ_e2
     | GetF(e', s) ->
@@ -121,6 +122,7 @@ let type_prog prog =
       | _ -> error (Printf.sprintf "%s n'est pas de type list" (typ_to_string typ_e1 ))
       end
     | Print(e) -> ignore(type_expr e tenv); TUnit
+    | Tuple(l) ->  TTuple (List.map2 (fun x env -> type_expr x env) l (List.map (fun x -> tenv) l))
     and eq_struct = function
       (* Regarde pour chaque nom et type que c est les meme que dans la structure*)
     | Strct((k, b)::r1), ( a,(Typ_Strct ((s, t, boolean)::r2))) , tenv
@@ -145,10 +147,17 @@ let type_prog prog =
     |[], typ, tenv -> TList(typ)
     | x::s, typ, tenv -> check x typ tenv; checkList (s, typ, tenv)
     and find_enum = function
-    | s, t1::t2 -> if eq_enum(s,snd t1) then TStrct(fst t1) else find_enum(s, t2)
+    | s, t1::t2 -> if eq_enum(s,snd t1) then type_enum(s, fst t1,snd t1) else find_enum(s, t2)
     | s, [] -> error (Printf.sprintf "%s n'est pas defini" s)
     and eq_enum = function
-    | s, Typ_Enum te -> List.exists (fun x  -> x = s) te
+    | s, Typ_Enum te -> List.exists (fun x  -> (fst x) = s) te 
     | _ -> false
+    and type_enum = function
+    | s,nom_struct  ,Typ_Enum ((st, None)::t2) -> if s = st then TStrct(nom_struct) else
+      type_enum(s, nom_struct, (Typ_Enum t2))
+    | s,nom_struct  ,Typ_Enum ((st, Some a)::t2) -> if s = st then TFun(a,TStrct(nom_struct)) else
+      type_enum(s, nom_struct, (Typ_Enum t2))
+    | _ -> error (Printf.sprintf "Impossible de passer par la")
+   
   in
   type_expr prog.code SymTbl.empty

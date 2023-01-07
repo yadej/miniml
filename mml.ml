@@ -4,12 +4,14 @@ type typ =
   | TInt 
   | TBool
   | TUnit
+  | TJoker
   | TFun of typ * typ
   | TStrct of string
   | TList of typ
+  | TTuple of typ list
 type strct = 
   | Typ_Strct of (string * typ * bool) list
-  | Typ_Enum of string list
+  | Typ_Enum of (string * typ option) list
 
 let rec typ_to_string = function
   | TInt  -> "int"
@@ -19,6 +21,10 @@ let rec typ_to_string = function
      Printf.sprintf "(%s) -> %s" (typ_to_string typ1) (typ_to_string typ2)
   | TStrct s -> Printf.sprintf "Struct %s" s
   | TList l -> Printf.sprintf "List %s" (typ_to_string l)
+  | TTuple [x] -> Printf.sprintf "%s" (typ_to_string x)
+  | TTuple (x::s) -> Printf.sprintf "%s * %s " (typ_to_string x) (typ_to_string (TTuple s))
+  | TTuple [] -> Printf.sprintf ""
+  | TJoker -> ""
 
 type uop = Neg | Not
 type bop = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Le | And | Or | Eqs | Neqs
@@ -27,6 +33,7 @@ type expr =
   | Int   of int
   | Bool  of bool
   | Unit
+  | JokerMatch
   | Uop   of uop * expr
   | Bop   of bop * expr * expr
   | Var   of string
@@ -44,7 +51,7 @@ type expr =
   | GetList of expr * int
   | SetList of expr * int * expr
   | Print of expr
-
+  | Tuple of expr list
 type prog = {
     types: (string * strct) list;
     code: expr;

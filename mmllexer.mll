@@ -6,7 +6,7 @@
   exception Lexing_error of string
 
   let keyword_or_ident =
-    let h = Hashtbl.create 21 in
+    let h = Hashtbl.create 25 in
     List.iter (fun (s, k) -> Hashtbl.add h s k)
       [ ("true", TRUE);
         ("false", FALSE);
@@ -28,6 +28,9 @@
         ("or", OR);
         ("list", LIST);
         ("print", PRINT);
+        ("of", OF);
+        ("match", MATCH);
+        ("with", WITH);
       ] ;
     fun s ->
       try  Hashtbl.find h s
@@ -99,6 +102,10 @@ rule token = parse
      { DPOINT}
   | "."
      { POINT }
+  | ","
+     { COMMA }
+  | "_"
+     { UNDERSCORE }
   | _
       { raise (Lexing_error ("unknown character : " ^ (lexeme lexbuf))) }
   | eof

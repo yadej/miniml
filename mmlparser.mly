@@ -25,8 +25,8 @@
 (* Paire *)
 (* ( ) { } <-  ->  [ ]*)
 %token LPAR RPAR LBRA RBRA LARR RARR LCRO RCRO
-(* ; : .  |*)
-%token SEMI DPOINT POINT BAR
+(* ; : .  | , _*)
+%token SEMI DPOINT POINT BAR COMMA UNDERSCORE
 (* Condition *)
 %token IF THEN ELSE
 (* fonction *)
@@ -34,6 +34,9 @@
 %token LET REC IN
 (* Print *)
 %token PRINT
+(*of*)
+%token OF
+%token MATCH WITH
 (* End of line *)
 %token EOF
 
@@ -46,7 +49,6 @@
 %right LIST
 (* priorite des point virgule*)
 %right IDENT
-%nonassoc TRUE FALSE CST 
 %right SEMI
 (* priorite condit *)
 %nonassoc THEN
@@ -57,9 +59,9 @@
 %right AND
 
 %right LARR 
-
 (* priorite op bool*)
-%nonassoc DEQ NEQ LT LE EQ NEQS
+
+%right DEQ NEQ LT LE EQ NEQS
 
 (* priorite des operateur *) 
 %left PLUS MOINS
@@ -67,7 +69,7 @@
 
 %nonassoc NEG
 %left NOT
-
+%nonassoc TRUE FALSE CST 
 (* priorite des parenthese  *)
 %right LPAR LCRO
 
@@ -92,7 +94,12 @@ struct_type_def:
 | id=IDENT DPOINT t=type_ SEMI  { (id, t, false) }
 
 enumere_type_def:
-| BAR id=IDENT { id }
+| BAR id=IDENT { (id, None) }
+| BAR id=IDENT OF t=type_ { (id, Some t) }
+| BAR id=IDENT OF t=type_ tl=typelist+ { (id, Some (TTuple (t::tl))) }
+
+typelist:
+| STAR t=type_ {t }
 
 type_:
 | INT { TInt }
@@ -102,6 +109,7 @@ type_:
 | t1=type_ RARR t2=type_ { TFun(t1,t2) }
 | LPAR t=type_ RPAR { t }
 | t=type_ LIST { TList(t) }
+| LPAR t=type_ tu=tuple+ RPAR { TTuple (t::tu) }
 ;
 
 simple_expression:
@@ -113,6 +121,7 @@ simple_expression:
 | s=simple_expression POINT id=IDENT { GetF(s, id) }
 | LBRA stsimpexp=struct_simple_exp+ RBRA { Strct( stsimpexp ) } 
 | LPAR e=expression RPAR { e }
+| LPAR e=expression te=tupleexpr+ RPAR { Tuple (e::te) }
 | LCRO l=lists RCRO { List(l) }
 | LCRO RCRO {List([])}
 | s=simple_expression DPOINT DPOINT s2=simple_expression { AppList(s, s2) }
@@ -138,6 +147,7 @@ expression:
 | seq_=sequence {seq_}
 | s=simple_expression POINT LCRO n=CST RCRO LARR e=expression { SetList(s, n, e) }
 | PRINT LPAR s=simple_expression RPAR { Print(s) }
+(*| MATCH s=simple_expression WITH el=matchexpr+ { Match(s,el) }*)
 ;
 
 argumentLet:
@@ -153,9 +163,16 @@ sequence:
 lists:
 | e=simple_expression es=exprsemi* { [e] @ es }
 ;
+tuple:
+| STAR t=type_ { t }
+tupleexpr:
+| COMMA e=expression { e }
 exprsemi:
 | SEMI e=simple_expression { e }
 ;
+(*matchexpr:
+| BAR e1=simple_expression RARR e2=simple_expression { (e1, e2) }
+| BAR UNDERSCORE RARR s=simple_expression { (JokerMatch, s) }*)
 unop:
 | MOINS e=expression %prec NEG { Uop(Neg, e) }
 | NOT e=expression { Uop(Not, e) }
