@@ -25,8 +25,8 @@
 (* Paire *)
 (* ( ) { } <-  ->  [ ]*)
 %token LPAR RPAR LBRA RBRA LARR RARR LCRO RCRO
-(* ; : .  | , _*)
-%token SEMI DPOINT POINT BAR COMMA UNDERSCORE
+(* ; : .  | ,*)
+%token SEMI DPOINT POINT BAR COMMA
 (* Condition *)
 %token IF THEN ELSE
 (* fonction *)
@@ -36,7 +36,6 @@
 %token PRINT
 (*of*)
 %token OF
-%token MATCH WITH
 (* End of line *)
 %token EOF
 

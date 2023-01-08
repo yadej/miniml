@@ -19,7 +19,6 @@ let type_prog prog =
     let typ_e = type_expr e tenv in
     let check2 = begin match typ_e with
     | TList(_) when e = List([]) -> true
-    | TJoker -> false
     | _ -> false
     end in
     if typ_e <> typ && check2 then type_error typ_e typ
@@ -31,7 +30,6 @@ let type_prog prog =
     | Var x ->( try  SymTbl.find x tenv 
             with Not_found -> find_enum(x, prog.types))
     | Unit -> TUnit
-    | JokerMatch -> TJoker
     | Uop(Neg, e') ->
       check e' TInt tenv; TInt
     | Uop(Not, e') ->

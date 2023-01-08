@@ -58,7 +58,6 @@ let eval_prog (p: prog): value =
     | Int n  -> VInt n
     | Bool b -> VBool b
     | Unit -> VUnit
-    | JokerMatch -> VUnit
     | Var x -> (try Env.find x env with Not_found -> VString(x) )
     | Tuple l -> VTuple( eval_list l env )
     | Bop(Add, e1, e2) -> VInt (evali e1 env + evali e2 env)

@@ -2,13 +2,17 @@ open Format
 open Mml
 
 let rec print_fields ppf = function
-  | [] -> fprintf ppf ""
-  | (x, t, m) :: l -> let mut = if m then "mutable " else "" in
-                 fprintf ppf "%s %s: %s;@ %a" mut x (typ_to_string t) print_fields l
+  | Typ_Strct [] -> fprintf ppf ""
+  | Typ_Strct ((x, t, m) :: l )-> let mut = if m then "mutable " else "" in
+                 fprintf ppf "%s %s: %s;@ %a" mut x (typ_to_string t) print_fields (Typ_Strct l)
+  | Typ_Enum ((x, None)::l) ->  fprintf ppf "\n|@ %s %a" x print_fields (Typ_Enum l)
+  | Typ_Enum ((x, Some t)::l) -> fprintf ppf "\n|@ %s of %s %a" x (typ_to_string t) print_fields (Typ_Enum l)
+  | Typ_Enum [] -> fprintf ppf ""
 
 let rec print_types ppf = function
   | [] -> fprintf ppf "@."
-  | (t, s) :: l -> fprintf ppf "type %s = { @[%a}@]@.%a" t print_fields s print_types l
+  | (t,Typ_Strct s) :: l -> fprintf ppf "type %s = { @[%a}@]@.%a" t print_fields (Typ_Strct s) print_types l
+  | (t, Typ_Enum s) :: l -> fprintf ppf "type %s = @[%a @]@.%a" t print_fields (Typ_Enum s) print_types l 
 
 let uop_to_string = function
   | Neg -> "-"
@@ -25,6 +29,8 @@ let bop_to_string = function
   | Le  -> "<="
   | And -> "&&"
   | Or  -> "||"
+  | Eqs -> "="
+  | Neqs -> "<>" 
 
 let rec print_expr ppf = function
   | Int n -> fprintf ppf "%i" n
@@ -42,9 +48,19 @@ let rec print_expr ppf = function
   | GetF(e, x) -> fprintf ppf "(%a).%s" print_expr e x
   | SetF(e1, x, e2) -> fprintf ppf "(%a).%s <- %a" print_expr e1 x print_expr e2
   | Seq(e1, e2) -> fprintf ppf "%a; %a" print_expr e1 print_expr e2
+  | List(l) -> fprintf ppf "[ @[ %a @] ]" print_list l
+  | Tuple(l) -> fprintf ppf "( @[ %a @] )" print_list l
+  | Print (e) -> fprintf ppf "print(%a)" print_expr e
+  | AppList(x, l) -> fprintf ppf "( @[ %a::%a @] )" print_expr x print_expr l
+  | GetList(e, x) -> fprintf ppf "(%a).[%i]" print_expr e x
+  | SetList(e1, x, e2) -> fprintf ppf "(%a).[%d] <- %a" print_expr e1 x print_expr e2
 and print_defs ppf = function
   | [] -> fprintf ppf ""
   | (x, e) :: l -> fprintf ppf "%s = %a; %a" x print_expr e print_defs l
+and print_list ppf = function
+| [] -> fprintf ppf "@."
+| [x] -> fprintf ppf "%a" print_expr x
+| x::l -> fprintf ppf "%a; %a" print_expr x print_list l
 
 let print_prog ppf prog =
   fprintf ppf "%a@.%a@." print_types prog.types print_expr prog.code

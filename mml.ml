@@ -4,7 +4,6 @@ type typ =
   | TInt 
   | TBool
   | TUnit
-  | TJoker
   | TFun of typ * typ
   | TStrct of string
   | TList of typ
@@ -24,7 +23,6 @@ let rec typ_to_string = function
   | TTuple [x] -> Printf.sprintf "%s" (typ_to_string x)
   | TTuple (x::s) -> Printf.sprintf "%s * %s " (typ_to_string x) (typ_to_string (TTuple s))
   | TTuple [] -> Printf.sprintf ""
-  | TJoker -> ""
 
 type uop = Neg | Not
 type bop = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Le | And | Or | Eqs | Neqs
@@ -33,7 +31,6 @@ type expr =
   | Int   of int
   | Bool  of bool
   | Unit
-  | JokerMatch
   | Uop   of uop * expr
   | Bop   of bop * expr * expr
   | Var   of string
